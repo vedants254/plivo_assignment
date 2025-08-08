@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import Dashboard from './components/Dashboard';
+import Login from './components/login_component.js';
+import Signup from './components/signup_component.js';
+import Dashboard from './components/dashboard_component.js';
 
 // Use Vercel deployment URL for production, localhost for development
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
