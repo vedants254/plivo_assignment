@@ -1,5 +1,6 @@
 import os
 import uvicorn
+import json
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,9 +42,22 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 MISTRAL_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
 DEEPSEEK_VL_API_URL = "https://api-inference.huggingface.co/models/deepseek-ai/deepseek-vl-1.3b-chat"
 
-# In-memory storage
-users_db = {}
-user_history = {}
+# File-based storage
+USERS_FILE = os.path.join("/tmp", "users.json")
+HISTORY_FILE = os.path.join("/tmp", "history.json")
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_json(data, file_path):
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+users_db = load_json(USERS_FILE)
+user_history = load_json(HISTORY_FILE)
 
 # Models
 class UserCreate(BaseModel):
@@ -188,7 +202,7 @@ def scrape_url_content(url: str) -> str:
 
 def add_to_history(username: str, item_type: str, input_data: str, output: str):
     if username not in user_history:
-        user_history[username] = deque(maxlen=20)
+        user_history[username] = []
     
     history_item = {
         "type": item_type,
@@ -197,6 +211,7 @@ def add_to_history(username: str, item_type: str, input_data: str, output: str):
         "timestamp": datetime.utcnow().isoformat()
     }
     user_history[username].append(history_item)
+    save_json(user_history, HISTORY_FILE)
 
 # Auth endpoints
 @app.post("/auth/signup")
@@ -208,6 +223,7 @@ async def signup(user: UserCreate):
         "username": user.username,
         "password": hash_password(user.password)
     }
+    save_json(users_db, USERS_FILE)
     
     token = create_jwt_token(user.username)
     return {"message": "User created successfully", "token": token}
@@ -326,7 +342,7 @@ async def get_history(
     if current_user not in user_history:
         return {"history": []}
     
-    history_list = list(user_history[current_user])
+    history_list = user_history[current_user]
     
     # Filter by type if specified
     if item_type:
