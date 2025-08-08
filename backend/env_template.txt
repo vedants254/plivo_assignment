@@ -1,0 +1,5 @@
+# JWT Secret for authentication
+JWT_SECRET=your-super-secret-jwt-key-here
+
+# Hugging Face API Token for model inference
+HF_TOKEN=your-huggingface-api-token-here
