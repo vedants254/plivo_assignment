@@ -1,1 +1,1 @@
-python-3.12
+now-php@1.0.0
